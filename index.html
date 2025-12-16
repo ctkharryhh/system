@@ -1,0 +1,614 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Physics System vs. Individual Interaction</title>
+    <style>
+        /* --- Global Reset --- */
+        * { box-sizing: border-box; }
+
+        :root {
+            --primary: #3498db;
+            --secondary: #e74c3c;
+            --accent: #2ecc71;
+            --dark: #2c3e50;
+            --light: #ecf0f1;
+            --box-color: #f1c40f;
+            --system-color: #f39c12;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            /* CHANGED: Background to white to match logo */
+            background-color: #ffffff;
+            color: var(--dark);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            margin: 0;
+            padding: 20px;
+        }
+
+        /* --- Logo --- */
+        .logo {
+            width: 180px;
+            height: auto;
+            margin-bottom: 15px;
+        }
+
+        h1 { margin-bottom: 10px; margin-top: 0; text-align: center; }
+        p { margin-top: 0; color: #7f8c8d; text-align: center; }
+
+        /* --- Controls --- */
+        .controls {
+            background: white;
+            padding: 20px;
+            border-radius: 12px;
+            /* Added border to distinguish from white background */
+            border: 1px solid #e0e0e0;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+            display: flex;
+            gap: 20px;
+            flex-wrap: wrap;
+            justify-content: center;
+            align-items: flex-start;
+            margin-bottom: 30px;
+            width: 95%;
+            max-width: 900px;
+        }
+
+        .control-group {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-width: 120px;
+        }
+
+        .control-row {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+
+        label { font-size: 14px; font-weight: bold; margin-bottom: 5px; }
+        
+        input[type=range] { width: 120px; cursor: pointer; }
+        
+        button {
+            padding: 8px 16px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: transform 0.1s;
+            font-size: 13px;
+        }
+        button:active { transform: scale(0.95); }
+        
+        .btn-add { background-color: var(--primary); color: white; }
+        .btn-remove { background-color: #95a5a6; color: white; }
+        
+        /* Toggles */
+        .toggle-container {
+            display: flex;
+            background: #f0f0f0; /* Slightly darker than white */
+            border-radius: 20px;
+            padding: 4px;
+            cursor: pointer;
+            margin-bottom: 5px;
+        }
+        .toggle-opt {
+            padding: 6px 12px;
+            border-radius: 16px;
+            font-size: 13px;
+            font-weight: bold;
+            transition: 0.3s;
+            opacity: 0.6;
+        }
+        .toggle-opt.active {
+            background: var(--dark);
+            color: white;
+            opacity: 1;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+        }
+
+        /* Target Selector */
+        .target-selector {
+            display: flex;
+            gap: 5px;
+            margin-top: 5px;
+        }
+        .target-btn {
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            border: 2px solid var(--dark);
+            background: white;
+            font-weight: bold;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            cursor: pointer;
+        }
+        .target-btn.selected {
+            background: var(--accent);
+            color: white;
+            border-color: var(--accent);
+        }
+
+        /* --- Simulation Stage --- */
+        .stage-container {
+            position: relative;
+            width: 90%;
+            max-width: 900px;
+            height: 450px;
+            background: white;
+            /* Slightly darker border for the table line */
+            border-bottom: 8px solid #95a5a6; 
+            display: flex;
+            align-items: flex-end;
+            padding-bottom: 0;
+            overflow: visible; 
+            margin-bottom: 20px;
+            padding-left: 150px;
+        }
+
+        /* Boxes */
+        .box {
+            width: 100px;
+            height: 100px;
+            background-color: var(--box-color);
+            border: 2px solid #d35400;
+            border-radius: 4px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 32px; 
+            font-weight: bold;
+            position: relative;
+            transition: all 0.3s ease;
+            z-index: 10;
+            flex-shrink: 0;
+            color: rgba(0,0,0,0.7);
+        }
+        
+        /* Mass Label: Bottom Center */
+        .box-mass {
+            position: absolute;
+            bottom: 6px;
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: 13px;
+            font-weight: bold;
+            color: rgba(0,0,0,0.6);
+            background: rgba(255,255,255,0.4);
+            padding: 2px 6px;
+            border-radius: 10px;
+            pointer-events: none;
+        }
+
+        /* Fused System Box */
+        .fused-box {
+            background-color: var(--system-color);
+            border: 3px solid #d35400;
+            border-radius: 6px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 20px;
+            font-weight: bold;
+            color: white;
+            text-shadow: 1px 1px 2px rgba(0,0,0,0.2);
+            position: relative;
+            z-index: 10;
+            flex-shrink: 0;
+            white-space: pre-line;
+            text-align: center;
+            box-shadow: inset 0 0 20px rgba(0,0,0,0.05);
+        }
+
+        /* --- Arrows --- */
+        .arrow {
+            position: absolute;
+            height: 6px;
+            transform-origin: left center;
+            display: flex;
+            align-items: center;
+            z-index: 20;
+            transition: width 0.2s ease, left 0.2s ease, top 0.2s ease;
+        }
+        
+        .arrow::after {
+            content: '';
+            position: absolute;
+            right: -10px;
+            border-left: 10px solid currentColor;
+            border-top: 8px solid transparent;
+            border-bottom: 8px solid transparent;
+        }
+        
+        .arrow-label {
+            position: absolute;
+            white-space: nowrap;
+            font-size: 14px;
+            font-weight: bold;
+            color: inherit;
+            background: rgba(255, 255, 255, 0.95);
+            padding: 1px 5px;
+            border-radius: 4px;
+            pointer-events: none;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            border: 1px solid rgba(0,0,0,0.1);
+        }
+
+        .force-applied { background-color: var(--accent); color: var(--accent); }
+        .force-friction { background-color: var(--secondary); color: var(--secondary); }
+        .force-contact-right { background-color: #8e44ad; color: #8e44ad; }
+        .force-contact-left { background-color: #9b59b6; color: #9b59b6; }
+
+        /* --- Stats --- */
+        .stats {
+            display: flex;
+            gap: 30px;
+            font-size: 18px;
+            font-weight: bold;
+            background: white;
+            padding: 15px 30px;
+            border-radius: 50px;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+            border: 1px solid #e0e0e0;
+        }
+        .stat-item span { color: var(--primary); }
+
+    </style>
+</head>
+<body>
+
+    <img src="https://d41chssnpqdne.cloudfront.net/user_upload_by_module/chat_bot/files/176719383/sfgv3HH8yBECOBJy.png?Expires=1767077373&Signature=abqh80kgShCXtZgdHgjCuYgy7FUKd2dD6QSKdzcz1djb4Y4CJ-PBbbcUpZLxCVDu2JGY5usZfpXMgyJc3pAjTOpt2VkV2MlAVv0e6dMs668D1wUC8jyqaDzzzOnBX6V8eaYPtJphD0B8LU7CKBfdPgAIl2pwN8QsIdCVDPNDbTk3fOXXHV8fOvfrN4HjpfqcHaTfDLYsNvDhh82MTxCmMlbAG3JvZSxAO0mwnAHxILJb-9-KhYXYeqUL70BybeRmr9BnJfIt8jqkIhhkv38QqIdCi0YF1h2~TjQG9W6zOtN6Nu1wqkrZzwoPd6ttmXDan6gHZfSYmZ~vf6PgR1LWSw__&Key-Pair-Id=K3USGZIKWMDCSX" class="logo" alt="Unit Education Logo">
+
+    <h1>📦 Multi-Body Dynamics: System vs. Individual</h1>
+    <p>Switch layouts, stack boxes, and apply force to see how forces distribute.</p>
+
+    <div class="controls">
+        <!-- Layout & Mode -->
+        <div class="control-group">
+            <label>Configuration</label>
+            <div class="toggle-container">
+                <div class="toggle-opt active" id="layout-hor" onclick="setLayout('horizontal')">Horizontal (Train)</div>
+                <div class="toggle-opt" id="layout-ver" onclick="setLayout('vertical')">Vertical (Stack)</div>
+            </div>
+            <div class="toggle-container">
+                <div class="toggle-opt active" id="mode-ind" onclick="setMode('individual')">Individual Forces</div>
+                <div class="toggle-opt" id="mode-sys" onclick="setMode('system')">System View</div>
+            </div>
+        </div>
+
+        <!-- Box Management -->
+        <div class="control-group">
+            <label>Boxes</label>
+            <div class="control-row">
+                <button class="btn-add" onclick="addBox()">+ Add</button>
+                <button class="btn-remove" onclick="removeBox()">- Remove</button>
+            </div>
+            <div id="target-container" style="display:none; flex-direction:column; align-items:center; margin-top:5px;">
+                <label style="font-size:12px; margin-bottom:2px;">Apply Force On:</label>
+                <div class="target-selector" id="target-selector"></div>
+            </div>
+        </div>
+
+        <!-- Physics Parameters -->
+        <div class="control-group">
+            <label>Applied Force (F<sub>app</sub>): <span id="val-force">50</span> N</label>
+            <input type="range" id="input-force" min="0" max="250" value="50" oninput="updateSim()">
+        </div>
+
+        <!-- Max Friction Control -->
+        <div class="control-group">
+            <label>Max Friction (f<sub>max</sub>): <span id="val-fmax">20</span> N</label>
+            <input type="range" id="input-fmax" min="0" max="100" step="5" value="20" oninput="updateSim()">
+        </div>
+    </div>
+
+    <div class="stage-container" id="stage"></div>
+
+    <div class="stats">
+        <div class="stat-item">Total Mass: <span id="stat-mass">0</span> kg</div>
+        <div class="stat-item">Acceleration: <span id="stat-acc">0</span> m/s²</div>
+    </div>
+
+    <script>
+        // --- Configuration ---
+        const BOX_MASS = 10; 
+        const MAX_BOXES = 4;
+        const LABELS = ['X', 'Y', 'Z', 'A'];
+        const BOX_WIDTH = 100; 
+        const GAP = 2; 
+        
+        // --- State ---
+        let boxes = ['X', 'Y']; 
+        let mode = 'individual'; 
+        let layout = 'horizontal'; 
+        let targetIndex = 0; 
+
+        // --- DOM Elements ---
+        const stage = document.getElementById('stage');
+        const valForce = document.getElementById('val-force');
+        const valFmax = document.getElementById('val-fmax');
+        const statMass = document.getElementById('stat-mass');
+        const statAcc = document.getElementById('stat-acc');
+        const targetContainer = document.getElementById('target-container');
+        const targetSelector = document.getElementById('target-selector');
+
+        // --- Core Logic ---
+
+        function addBox() {
+            if (boxes.length < MAX_BOXES) {
+                boxes.push(LABELS[boxes.length]);
+                updateSim();
+            }
+        }
+
+        function removeBox() {
+            if (boxes.length > 1) {
+                boxes.pop();
+                if (targetIndex >= boxes.length) targetIndex = boxes.length - 1;
+                updateSim();
+            }
+        }
+
+        function setMode(newMode) {
+            mode = newMode;
+            document.getElementById('mode-ind').classList.toggle('active', mode === 'individual');
+            document.getElementById('mode-sys').classList.toggle('active', mode === 'system');
+            updateSim();
+        }
+
+        function setLayout(newLayout) {
+            layout = newLayout;
+            document.getElementById('layout-hor').classList.toggle('active', layout === 'horizontal');
+            document.getElementById('layout-ver').classList.toggle('active', layout === 'vertical');
+            
+            if (layout === 'vertical') {
+                targetContainer.style.display = 'flex';
+            } else {
+                targetContainer.style.display = 'none';
+                targetIndex = 0; 
+            }
+            updateSim();
+        }
+
+        function setTarget(index) {
+            targetIndex = index;
+            updateSim();
+        }
+
+        function updateSim() {
+            const F_app = parseInt(document.getElementById('input-force').value);
+            const f_max_total = parseInt(document.getElementById('input-fmax').value);
+            
+            valForce.innerText = F_app;
+            valFmax.innerText = f_max_total;
+
+            targetSelector.innerHTML = '';
+            boxes.forEach((label, idx) => {
+                const btn = document.createElement('div');
+                btn.className = `target-btn ${idx === targetIndex ? 'selected' : ''}`;
+                btn.innerText = label;
+                btn.onclick = () => setTarget(idx);
+                targetSelector.appendChild(btn);
+            });
+
+            const totalMass = boxes.length * BOX_MASS;
+            
+            let currentFriction = 0;
+            let acceleration = 0;
+
+            if (F_app > f_max_total) {
+                currentFriction = f_max_total;
+                acceleration = (F_app - currentFriction) / totalMass;
+            } else {
+                currentFriction = F_app;
+                acceleration = 0;
+            }
+
+            statMass.innerText = totalMass;
+            statAcc.innerText = acceleration.toFixed(2);
+
+            renderScene(F_app, currentFriction, acceleration, totalMass);
+        }
+
+        function renderScene(F_app, currentTotalFriction, acc, totalMass) {
+            stage.innerHTML = ''; 
+
+            const trainContainer = document.createElement('div');
+            trainContainer.style.position = 'relative';
+            trainContainer.style.display = 'flex';
+            
+            if (layout === 'vertical') {
+                trainContainer.style.flexDirection = 'column-reverse'; 
+                trainContainer.style.alignItems = 'center';
+                trainContainer.style.width = '150px'; 
+            } else {
+                trainContainer.style.flexDirection = 'row';
+                trainContainer.style.alignItems = 'flex-end';
+            }
+            
+            stage.appendChild(trainContainer);
+
+            // --- RENDER BOXES OR FUSED SYSTEM ---
+            
+            if (mode === 'system') {
+                // Fused System Rendering
+                const fusedBox = document.createElement('div');
+                fusedBox.className = 'fused-box';
+                fusedBox.innerText = `System\nM = ${totalMass}kg`;
+                
+                if (layout === 'vertical') {
+                    fusedBox.style.width = `${BOX_WIDTH}px`;
+                    fusedBox.style.height = `${boxes.length * BOX_WIDTH}px`;
+                } else {
+                    fusedBox.style.height = `${BOX_WIDTH}px`;
+                    fusedBox.style.width = `${boxes.length * BOX_WIDTH}px`;
+                }
+                
+                trainContainer.appendChild(fusedBox);
+
+            } else {
+                // Individual Boxes Rendering
+                boxes.forEach((label, index) => {
+                    const box = document.createElement('div');
+                    box.className = 'box';
+                    // Mass label: Bottom Center
+                    box.innerHTML = `${label}<div class="box-mass">${BOX_MASS}kg</div>`;
+                    
+                    if (layout === 'vertical') {
+                        box.style.marginBottom = (index === 0) ? '0' : `${GAP}px`; 
+                    } else {
+                        box.style.marginRight = (index === boxes.length - 1) ? '0' : `${GAP}px`;
+                    }
+                    trainContainer.appendChild(box);
+                });
+            }
+
+            // --- ARROW HELPER ---
+            const createArrow = (x, y, length, type, labelText, direction = 'right') => {
+                if (length < 1) return; 
+                const visualLength = Math.min(length * 1.5, 120); 
+
+                const arrow = document.createElement('div');
+                arrow.className = `arrow ${type}`;
+                arrow.style.width = `${visualLength}px`;
+                
+                if (layout === 'vertical') {
+                    arrow.style.left = `${x}px`; 
+                    arrow.style.bottom = `${y}px`;
+                    arrow.style.top = 'auto';
+                } else {
+                    arrow.style.left = `${x}px`;
+                    arrow.style.bottom = `${y}px`;
+                    arrow.style.top = 'auto';
+                }
+
+                if (direction === 'left') {
+                    arrow.style.transform = 'rotate(180deg)';
+                }
+
+                const lbl = document.createElement('span');
+                lbl.className = 'arrow-label';
+                lbl.innerHTML = labelText;
+                
+                if (direction === 'right') {
+                    lbl.style.bottom = '10px'; 
+                    lbl.style.left = '0';
+                } else {
+                    lbl.style.transform = 'rotate(180deg)';
+                    lbl.style.top = '10px'; 
+                    lbl.style.right = '0';
+                    lbl.style.left = 'auto';
+                }
+                
+                if (type.includes('friction')) {
+                     if (direction === 'left') lbl.style.top = '-20px'; 
+                     else lbl.style.bottom = '-20px';
+                }
+
+                arrow.appendChild(lbl);
+                trainContainer.appendChild(arrow);
+            };
+
+            // ============================
+            //      SCENE LOGIC
+            // ============================
+
+            if (layout === 'horizontal') {
+                // --- HORIZONTAL ---
+                
+                // 1. Applied Force
+                if (F_app > 0) {
+                    const vLen = Math.min(F_app * 1.5, 120);
+                    createArrow(-vLen, 50, F_app, 'force-applied', `F<sub>app</sub>`, 'right');
+                }
+
+                if (mode === 'system') {
+                    const center = (boxes.length * 100) / 2;
+                    createArrow(center, -10, currentTotalFriction, 'force-friction', `f<sub>tot</sub>=${currentTotalFriction.toFixed(0)}`, 'left');
+                } else {
+                    let f_individual = currentTotalFriction / boxes.length;
+
+                    boxes.forEach((box, i) => {
+                        const boxLeft = i * (BOX_WIDTH + GAP);
+                        const boxRight = boxLeft + BOX_WIDTH;
+                        
+                        createArrow(boxLeft + 50, -10, f_individual, 'force-friction', `f`, 'left');
+
+                        if (i < boxes.length - 1) {
+                            const remainingMass = (boxes.length - 1 - i) * BOX_MASS;
+                            const remainingBlocks = (boxes.length - 1 - i);
+                            
+                            let N_contact = (remainingMass * acc) + (f_individual * remainingBlocks);
+                            
+                            createArrow(boxRight + 2, 30, N_contact, 'force-contact-right', `N=${N_contact.toFixed(0)}`, 'right');
+                            createArrow(boxRight, 60, N_contact, 'force-contact-left', `N`, 'left');
+                        }
+                    });
+                }
+
+            } else {
+                // --- VERTICAL ---
+                
+                // 1. Applied Force
+                if (F_app > 0) {
+                    const segmentHeight = (mode === 'system') ? 100 : 102;
+                    const targetY = (targetIndex * segmentHeight) + 50;
+                    
+                    const vLen = Math.min(F_app * 1.5, 120);
+                    createArrow(25 - vLen, targetY, F_app, 'force-applied', `F<sub>app</sub>`, 'right');
+                }
+
+                if (mode === 'system') {
+                    createArrow(75, -15, currentTotalFriction, 'force-friction', `f<sub>tot</sub>=${currentTotalFriction.toFixed(0)}`, 'left');
+                } else {
+                    let f_interface = new Array(boxes.length).fill(0); 
+                    let f_from_above = 0; 
+                    
+                    for (let i = boxes.length - 1; i >= 0; i--) {
+                        let F_push = (i === targetIndex) ? F_app : 0;
+                        let m_i = BOX_MASS;
+                        let req_net = m_i * acc;
+                        let f_below = req_net - F_push - f_from_above;
+                        
+                        f_interface[i] = f_below; 
+                        f_from_above = -f_below;
+                    }
+                    
+                    boxes.forEach((box, i) => {
+                        const yBottom = i * (BOX_WIDTH + GAP);
+                        let val = f_interface[i];
+                        
+                        if (i === 0) {
+                            if (Math.abs(val) > 0.1) {
+                                let dir = val > 0 ? 'right' : 'left';
+                                createArrow(75, -15, Math.abs(val), 'force-friction', `f=${Math.abs(val).toFixed(0)}`, dir);
+                            }
+                        } else {
+                            if (Math.abs(val) > 0.1) {
+                                let dir = val > 0 ? 'right' : 'left';
+                                createArrow(75, yBottom + 5, Math.abs(val), 'force-contact-right', `f=${Math.abs(val).toFixed(0)}`, dir);
+                            }
+                            if (Math.abs(val) > 0.1) {
+                                let dir = val > 0 ? 'left' : 'right'; 
+                                createArrow(75, yBottom - 15, Math.abs(val), 'force-contact-left', `f`, dir);
+                            }
+                        }
+                    });
+                }
+            }
+        }
+
+        updateSim();
+
+    </script>
+</body>
+</html>
+
