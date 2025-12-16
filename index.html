@@ -20,7 +20,6 @@
 
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            /* CHANGED: Background to white to match logo */
             background-color: #ffffff;
             color: var(--dark);
             display: flex;
@@ -45,7 +44,6 @@
             background: white;
             padding: 20px;
             border-radius: 12px;
-            /* Added border to distinguish from white background */
             border: 1px solid #e0e0e0;
             box-shadow: 0 4px 15px rgba(0,0,0,0.05);
             display: flex;
@@ -92,7 +90,7 @@
         /* Toggles */
         .toggle-container {
             display: flex;
-            background: #f0f0f0; /* Slightly darker than white */
+            background: #f0f0f0;
             border-radius: 20px;
             padding: 4px;
             cursor: pointer;
@@ -144,7 +142,6 @@
             max-width: 900px;
             height: 450px;
             background: white;
-            /* Slightly darker border for the table line */
             border-bottom: 8px solid #95a5a6; 
             display: flex;
             align-items: flex-end;
@@ -173,19 +170,19 @@
             color: rgba(0,0,0,0.7);
         }
         
-        /* Mass Label: Bottom Center */
+        /* FIXED: Mass Label moved to Top Right */
         .box-mass {
             position: absolute;
-            bottom: 6px;
-            left: 50%;
-            transform: translateX(-50%);
-            font-size: 13px;
+            top: 5px;
+            right: 5px;
+            font-size: 12px;
             font-weight: bold;
             color: rgba(0,0,0,0.6);
-            background: rgba(255,255,255,0.4);
-            padding: 2px 6px;
-            border-radius: 10px;
+            background: rgba(255,255,255,0.9); /* More opaque */
+            padding: 2px 5px;
+            border-radius: 4px;
             pointer-events: none;
+            box-shadow: 0 1px 2px rgba(0,0,0,0.1);
         }
 
         /* Fused System Box */
@@ -459,7 +456,7 @@
                 boxes.forEach((label, index) => {
                     const box = document.createElement('div');
                     box.className = 'box';
-                    // Mass label: Bottom Center
+                    // Mass label: Top Right
                     box.innerHTML = `${label}<div class="box-mass">${BOX_MASS}kg</div>`;
                     
                     if (layout === 'vertical') {
@@ -527,6 +524,7 @@
                 // 1. Applied Force
                 if (F_app > 0) {
                     const vLen = Math.min(F_app * 1.5, 120);
+                    // Applied force at y=50 (Center)
                     createArrow(-vLen, 50, F_app, 'force-applied', `F<sub>app</sub>`, 'right');
                 }
 
@@ -540,6 +538,7 @@
                         const boxLeft = i * (BOX_WIDTH + GAP);
                         const boxRight = boxLeft + BOX_WIDTH;
                         
+                        // Friction at y=-10
                         createArrow(boxLeft + 50, -10, f_individual, 'force-friction', `f`, 'left');
 
                         if (i < boxes.length - 1) {
@@ -548,8 +547,11 @@
                             
                             let N_contact = (remainingMass * acc) + (f_individual * remainingBlocks);
                             
-                            createArrow(boxRight + 2, 30, N_contact, 'force-contact-right', `N=${N_contact.toFixed(0)}`, 'right');
-                            createArrow(boxRight, 60, N_contact, 'force-contact-left', `N`, 'left');
+                            // UPDATED: Lowered contact forces to avoid Top-Right mass label
+                            // Action (Right): y=25
+                            createArrow(boxRight + 2, 25, N_contact, 'force-contact-right', `N=${N_contact.toFixed(0)}`, 'right');
+                            // Reaction (Left): y=50
+                            createArrow(boxRight, 50, N_contact, 'force-contact-left', `N`, 'left');
                         }
                     });
                 }
@@ -611,4 +613,3 @@
     </script>
 </body>
 </html>
-
